@@ -522,7 +522,7 @@
     .upload-btn.drag-over {
       transform: scale(1.06);
     }
-    /* 已上传的图片缩略图 */
+    /* 已上传的图片/视频/音频缩略图 */
     .upload-thumb {
       width: 52px; height: 52px;
       border-radius: 10px;
@@ -536,6 +536,41 @@
       width: 100%; height: 100%;
       object-fit: cover;
       display: block;
+    }
+    .upload-thumb video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+    /* 音频/视频的占位图标 */
+    .upload-thumb-icon {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: var(--bg-input);
+      font-size: 18px;
+      gap: 2px;
+    }
+    .upload-thumb-icon span {
+      font-size: 9px;
+      color: var(--text-muted);
+      max-width: 46px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: center;
+    }
+    /* 媒体类型角标 */
+    .upload-thumb-badge {
+      position: absolute; bottom: 2px; left: 2px;
+      background: rgba(0,0,0,0.75);
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-size: 8px;
+      color: rgba(255,255,255,0.9);
+      font-weight: 600;
+      letter-spacing: 0.02em;
     }
     .upload-thumb-del {
       position: absolute;
@@ -552,6 +587,102 @@
       border: none;
     }
     .upload-thumb:hover .upload-thumb-del { opacity: 1; }
+    /* 视频模式：上传按钮提示文字 */
+    .upload-btn-tip {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.3;
+      padding: 0 4px;
+      pointer-events: none;
+    }
+    /* ===== 媒体预览弹窗（图片放大 / 视频播放 / 音频播放） ===== */
+    .media-preview-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s, visibility 0.25s;
+    }
+    .media-preview-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .media-preview-overlay img.preview-img {
+      max-width: 90vw; max-height: 80vh;
+      border-radius: 8px;
+      object-fit: contain;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      animation: previewFadeIn 0.3s ease;
+    }
+    .media-preview-overlay video.preview-video {
+      max-width: 90vw; max-height: 75vh;
+      border-radius: 8px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      background: #000;
+    }
+    .media-preview-overlay .preview-audio-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 40px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 16px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+      min-width: 280px;
+      animation: previewFadeIn 0.3s ease;
+    }
+    .media-preview-overlay .preview-audio-icon {
+      font-size: 48px;
+      line-height: 1;
+    }
+    .media-preview-overlay .preview-audio-name {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .media-preview-overlay audio.preview-audio {
+      width: 300px;
+      border-radius: 8px;
+    }
+    .media-preview-overlay .preview-close {
+      position: absolute;
+      top: 20px; right: 24px;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .media-preview-overlay .preview-close:hover {
+      background: rgba(255,255,255,0.2);
+      transform: scale(1.1);
+    }
+    .media-preview-overlay .preview-title {
+      margin-top: 12px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      max-width: 80vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    @keyframes previewFadeIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
     /* 拖拽整个输入区时高亮 */
     .input-area.drag-active {
       outline: 2px dashed var(--accent-orange);
@@ -1626,15 +1757,18 @@
             <!-- 上传区域 -->
             <div class="upload-zone" id="uploadZone">
               <!-- 已上传缩略图动态插入到此区域，最后是加号按钮 -->
-              <div class="upload-btn" id="uploadBtn" title="点击或拖拽图片到此处上传"
+              <div class="upload-btn" id="uploadBtn" title="点击或拖拽图片/视频/音频到此处上传"
                 onclick="triggerUpload()"
                 ondragover="handleDragOver(event)"
                 ondragleave="handleDragLeave(event)"
                 ondrop="handleDrop(event)">
-                ＋
+                <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                  <span style="font-size:22px;line-height:1">＋</span>
+                  <span class="upload-btn-tip" id="uploadBtnTip">图/视/音</span>
+                </div>
               </div>
             </div>
-            <!-- 隐藏的文件选择器，支持多图 -->
+            <!-- 隐藏的文件选择器，视频模式支持 image/video/audio，图片模式只支持 image -->
             <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFileChange(event)" />
             <textarea class="prompt-input" id="promptInput"
               placeholder="试试输入：真实电影级别的空中战斗场景。从飞行员第一视角拍摄高速空战，我驾驶一架战斗机在云层间疾驰穿梭，紧迫前方..."
@@ -1672,28 +1806,6 @@
                     <div class="model-option-desc">快手可灵，高质量视频</div>
                   </div>
                   <span class="model-option-badge badge-new">✨ 新</span>
-                </div>
-                <div class="model-option" onclick="selectModel('wan', '万象 2.1', this)">
-                  <div class="model-option-icon" style="background:rgba(34,197,94,0.1)">🌀</div>
-                  <div class="model-option-info">
-                    <div class="model-option-name">万象 2.1</div>
-                    <div class="model-option-desc">阿里云视频生成</div>
-                  </div>
-                  <span class="model-option-badge badge-fast">⚡ 极速</span>
-                </div>
-                <div class="model-option" onclick="selectModel('sora', 'Sora', this)">
-                  <div class="model-option-icon" style="background:rgba(255,255,255,0.05)">🌐</div>
-                  <div class="model-option-info">
-                    <div class="model-option-name">Sora</div>
-                    <div class="model-option-desc">OpenAI 视频生成</div>
-                  </div>
-                </div>
-                <div class="model-option" onclick="selectModel('banana', '香蕉 Pro', this)">
-                  <div class="model-option-icon" style="background:rgba(255,193,7,0.1)">🍌</div>
-                  <div class="model-option-info">
-                    <div class="model-option-name">香蕉 Pro</div>
-                    <div class="model-option-desc">香蕉Pro视频生成</div>
-                  </div>
                 </div>
               </div>
               <!-- 图片创作分类 -->
@@ -1801,17 +1913,28 @@
         <button class="option-chip selected" onclick="selectChip(this, 'ratio', '9:16')">9:16</button>
         <button class="option-chip" onclick="selectChip(this, 'ratio', '1:1')">1:1</button>
         <button class="option-chip" onclick="selectChip(this, 'ratio', '4:3')">4:3</button>
+        <button class="option-chip" onclick="selectChip(this, 'ratio', '3:4')">3:4</button>
+        <button class="option-chip" onclick="selectChip(this, 'ratio', '3:2')">3:2</button>
+        <button class="option-chip" onclick="selectChip(this, 'ratio', '2:3')">2:3</button>
         <button class="option-chip" onclick="selectChip(this, 'ratio', '21:9')">21:9</button>
+        <button class="option-chip" onclick="selectChip(this, 'ratio', '9:21')">9:21</button>
       </div>
     </div>
-    <!-- Quality -->
-    <div class="panel-section">
-      <div class="panel-label">视频质量</div>
-      <div class="option-group" id="qualityGroup">
+    <!-- Quality - 视频模式 -->
+    <div class="panel-section" id="qualityVideoSection">
+      <div class="panel-label">分辨率</div>
+      <div class="option-group" id="qualityVideoGroup">
         <button class="option-chip" onclick="selectChip(this, 'quality', '480P')">480P</button>
         <button class="option-chip selected" onclick="selectChip(this, 'quality', '720P')">720P</button>
+      </div>
+    </div>
+    <!-- Quality - 图片模式 -->
+    <div class="panel-section" id="qualityImageSection" style="display:none">
+      <div class="panel-label">分辨率</div>
+      <div class="option-group" id="qualityImageGroup">
         <button class="option-chip" onclick="selectChip(this, 'quality', '1080P')">1080P</button>
-        <button class="option-chip" onclick="selectChip(this, 'quality', '4K')">4K ✦</button>
+        <button class="option-chip" onclick="selectChip(this, 'quality', '2K')">2K</button>
+        <button class="option-chip selected" onclick="selectChip(this, 'quality', '4K')">4K</button>
       </div>
     </div>
     <!-- Duration (视频模式) -->
@@ -1956,41 +2079,22 @@
         </div>
       </div>
 
-      <!-- OpenAI (Sora + GPT-Image) -->
+      <!-- ChatGPT Image2 -->
       <div class="api-provider-card">
         <div class="provider-header">
-          <div class="provider-icon" style="background:rgba(16,163,127,0.1)">🌐</div>
+          <div class="provider-icon" style="background:rgba(16,163,127,0.1)">🖼️</div>
           <div>
-            <div class="provider-name">OpenAI (Sora + GPT-Image)</div>
-            <div style="font-size:11px;color:var(--text-muted)">api.openai.com</div>
+            <div class="provider-name">ChatGPT Image2</div>
+            <div style="font-size:11px;color:var(--text-muted)">api.apiyi.com</div>
           </div>
-          <span class="provider-status" id="statusOpenai">未配置</span>
+          <span class="provider-status" id="statusChatgptimage2">未配置</span>
         </div>
         <div class="api-input-row">
-          <input type="password" class="api-key-input" id="keyOpenai" placeholder="输入 OpenAI API Key (sk-...)..." />
-          <button class="api-test-btn" onclick="testApi('openai')">测试</button>
+          <input type="password" class="api-key-input" id="keyChatgptimage2" placeholder="输入 API Key (sk-...)..." />
+          <button class="api-test-btn" onclick="testApi('chatgptimage2')">测试</button>
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:6px">
-          覆盖模型：Sora (视频)、GPT-Image2 (图片)
-        </div>
-      </div>
-
-      <!-- Replicate (FLUX + SD3) -->
-      <div class="api-provider-card">
-        <div class="provider-header">
-          <div class="provider-icon" style="background:rgba(255,107,53,0.1)">🎨</div>
-          <div>
-            <div class="provider-name">Replicate (FLUX / Stable Diffusion)</div>
-            <div style="font-size:11px;color:var(--text-muted)">api.replicate.com</div>
-          </div>
-          <span class="provider-status" id="statusReplicate">未配置</span>
-        </div>
-        <div class="api-input-row">
-          <input type="password" class="api-key-input" id="keyReplicate" placeholder="输入 Replicate API Token..." />
-          <button class="api-test-btn" onclick="testApi('replicate')">测试</button>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">
-          覆盖模型：FLUX 1.1 Pro、Stable Diffusion 3.5
+          覆盖模型：GPT-Image2 (图片) · 支持图生图
         </div>
       </div>
 
@@ -2025,14 +2129,83 @@
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
+<script src="auth.js"></script>
 <script>
 // =================== AUTH (账户密码认证) ===================
-// ★ 修改这里的用户名和密码即可 ★
-const AUTH_CONFIG = {
-  username: 'admin',
-  // 建议使用复杂密码，至少 8 位
-  password: 'ziyu2025'
-};
+// 用户名和密码在外部 auth.js 文件中配置，不在此处暴露
+// 如需修改密码，请编辑同目录下的 auth.js
+
+// ── XSS 防护：HTML 转义函数 ──
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ── API Key 加密存储 ──
+// 使用简单的 AES-256-GCM 加密（浏览器原生 Web Crypto API）
+// 密钥从登录密码派生，不同用户看到不同的加密结果
+const KEY_STORE_PREFIX = 'enc_'; // 加密后的 key 前缀
+const KEY_VERSION = 'v1';        // 加密版本，方便后续迁移
+
+async function deriveKeyMaterial() {
+  // 用当前登录用户信息派生加密密钥
+  const users = AUTH_CONFIG.users || [];
+  const raw = users.map(u => u.username + ':' + u.password).join('|');
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', encoder.encode(raw), 'PBKDF2', false, ['deriveKey']
+  );
+  // 固定盐值 + 迭代 10 万次
+  const salt = encoder.encode('ziyu-ai-key-store-2026');
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptValue(plainText) {
+  try {
+    const key = await deriveKeyMaterial();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encoder = new TextEncoder();
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv }, key, encoder.encode(plainText)
+    );
+    // 格式：版本 + Base64(iv + ciphertext)
+    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv);
+    combined.set(new Uint8Array(encrypted), iv.length);
+    return KEY_VERSION + ':' + btoa(String.fromCharCode(...combined));
+  } catch (e) {
+    // 降级：如果加密失败（如 auth.js 未加载），返回混淆后的值
+    return KEY_VERSION + ':' + btoa(plainText);
+  }
+}
+
+async function decryptValue(stored) {
+  if (!stored) return '';
+  if (!stored.startsWith(KEY_VERSION + ':')) return stored; // 旧格式明文
+  try {
+    const raw = stored.slice(KEY_VERSION.length + 1);
+    // 判断是否是降级存储的 base64 明文
+    const key = await deriveKeyMaterial();
+    const decoder = new TextDecoder();
+    const combined = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+    const iv = combined.slice(0, 12);
+    const ciphertext = combined.slice(12);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv }, key, ciphertext
+    );
+    return decoder.decode(decrypted);
+  } catch (e) {
+    return '';
+  }
+}
 
 // 简单哈希（防止明文存储在 localStorage）
 function simpleHash(str) {
@@ -2051,12 +2224,19 @@ function generateToken() {
   return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// 查找匹配的用户（多用户支持）
+function findUser(username, password) {
+  return (AUTH_CONFIG.users || []).find(u => u.username === username && u.password === password);
+}
+
 // 检查是否已登录（页面加载时调用）
 function checkAuth() {
   const savedToken = sessionStorage.getItem('auth_token');
   const savedHash = sessionStorage.getItem('auth_hash');
-  const expectedHash = simpleHash(AUTH_CONFIG.username + ':' + AUTH_CONFIG.password + ':' + (savedToken || ''));
-  if (savedToken && savedHash === expectedHash) {
+  // 遍历所有用户，看是否有匹配的 hash
+  const users = AUTH_CONFIG.users || [];
+  const matched = users.some(u => savedHash === simpleHash(u.username + ':' + u.password + ':' + (savedToken || '')));
+  if (savedToken && matched) {
     return true;
   }
   sessionStorage.removeItem('auth_token');
@@ -2091,7 +2271,7 @@ function doLogin() {
     return;
   }
 
-  if (user !== AUTH_CONFIG.username || pass !== AUTH_CONFIG.password) {
+  if (!findUser(user, pass)) {
     userInput.classList.add('error');
     passInput.classList.add('error');
     errorEl.textContent = '账号或密码错误';
@@ -2161,7 +2341,7 @@ const state = {
   mode: 'video',
   model: 'seedance2',
   videoParams: { ratio: '9:16', quality: '720P', duration: 15, genCount: 1 },
-  imageParams: { ratio: '9:16', quality: '720P', genCount: 1, style: '写实' },
+  imageParams: { ratio: '9:16', quality: '4K', genCount: 1, style: '写实' },
   get params() { return this.mode === 'video' ? this.videoParams : this.imageParams; },
   credits: 100,
   history: [],
@@ -2169,21 +2349,35 @@ const state = {
 };
 
 // Load saved API keys
-const PROVIDERS = ['bytedance','kling','openai','replicate','banana'];
-function loadKeys() {
-  PROVIDERS.forEach(p => {
-    const key = localStorage.getItem('apikey_' + p);
-    if (key) {
+const PROVIDERS = ['bytedance','kling','chatgptimage2','banana'];
+async function loadKeys() {
+  for (const p of PROVIDERS) {
+    const raw = localStorage.getItem('apikey_' + p);
+    if (raw) {
+      const key = await decryptValue(raw);
       const el = document.getElementById('key' + p.charAt(0).toUpperCase() + p.slice(1));
-      if (el) el.value = key;
-      updateProviderStatus(p, true);
+      if (el && key) {
+        el.value = key;
+        updateProviderStatus(p, true);
+      }
     }
-  });
-  // 香蕉 Pro 自定义 URL
+  }
+  // 香蕉 Pro 自定义 URL（URL 不加密，没有安全风险）
   const bananaUrl = localStorage.getItem('apikey_banana_url');
   if (bananaUrl) {
     const el = document.getElementById('keyBananaUrl');
     if (el) el.value = bananaUrl;
+  }
+  // 自动迁移：将旧格式明文 key 加密存储
+  for (const p of PROVIDERS) {
+    const raw = localStorage.getItem('apikey_' + p);
+    if (raw && !raw.startsWith(KEY_VERSION + ':')) {
+      const el = document.getElementById('key' + p.charAt(0).toUpperCase() + p.slice(1));
+      if (el && el.value) {
+        const encrypted = await encryptValue(el.value);
+        localStorage.setItem('apikey_' + p, encrypted);
+      }
+    }
   }
 }
 loadKeys();
@@ -2216,11 +2410,26 @@ function switchMode(mode, tabEl) {
   document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
   if (tabEl) tabEl.classList.add('active');
 
-  const uploadBtn = document.getElementById('uploadBtn');
+  // ---- 切换模式时清空输入状态，避免跨模式缓存 ----
   const promptInput = document.getElementById('promptInput');
+  promptInput.value = '';
+  promptInput.style.height = '';
+  // 清空已上传的所有媒体文件
+  uploadedImages.length = 0;
+  uploadedVideos.length = 0;
+  uploadedAudios.length = 0;
+  renderUploadedMedia();
+
+  const uploadBtn = document.getElementById('uploadBtn');
+  const fileInput = document.getElementById('fileInput');
 
   if (mode === 'video') {
     uploadBtn.style.display = 'flex';
+    // 更新按钮提示文字
+    const tipEl = document.getElementById('uploadBtnTip');
+    if (tipEl) tipEl.textContent = '图/视/音';
+    // 视频模式接受图片、视频、音频
+    fileInput.accept = 'image/*,video/*,audio/*';
     promptInput.placeholder = '试试输入：真实电影级别的空中战斗场景。从飞行员第一视角拍摄高速空战，我驾驶一架战斗机在云层间疾驰穿梭，紧迫前方...';
     // 切换到视频模型
     if (state.model === 'gptimage2' || state.model === 'banana') {
@@ -2228,6 +2437,10 @@ function switchMode(mode, tabEl) {
     }
   } else if (mode === 'image') {
     uploadBtn.style.display = 'flex';
+    const tipEl = document.getElementById('uploadBtnTip');
+    if (tipEl) tipEl.textContent = '';
+    // 图片模式只接受图片
+    fileInput.accept = 'image/*';
     promptInput.placeholder = '描述你想要生成的图片，如：一只可爱的猫咪坐在窗台上，水彩风格，柔和的光线...';
     // 切换到图片模型（默认香蕉 Pro）
     if (state.model !== 'banana' && state.model !== 'gptimage2') {
@@ -2243,13 +2456,16 @@ function refreshParamDisplay() {
   const p = state.params;
   const d = document.getElementById('paramDisplay');
   if (state.mode === 'video') {
-    d.textContent = `${p.ratio} | ${p.quality} | ${p.duration}秒 | ${p.genCount}条`;
+    const unit = p.genCount > 1 ? '条' : '条';
+    d.textContent = `${p.ratio} | ${p.quality} | ${p.duration}秒 | ${p.genCount}${unit}`;
     document.getElementById('durationVal').textContent = p.duration + ' 秒';
   } else {
     const styleName = p.style || '写实';
-    d.textContent = `${p.ratio} | ${p.quality} | ${styleName} | ${p.genCount}条`;
+    const unit = p.genCount > 1 ? '张' : '张';
+    d.textContent = `${p.ratio} | ${p.quality} | ${styleName} | ${p.genCount}${unit}`;
   }
-  document.getElementById('genCountVal').textContent = p.genCount + ' 条';
+  const countUnit = state.mode === 'image' ? ' 张' : ' 条';
+  document.getElementById('genCountVal').textContent = p.genCount + countUnit;
 }
 
 // =================== MODEL SELECT ===================
@@ -2291,9 +2507,13 @@ function openParams() {
   // 根据模式切换参数显示
   const durationSection = document.getElementById('paramDurationSection');
   const styleSection = document.getElementById('paramStyleSection');
+  const qualityVideoSection = document.getElementById('qualityVideoSection');
+  const qualityImageSection = document.getElementById('qualityImageSection');
   if (state.mode === 'video') {
     if (durationSection) durationSection.style.display = 'block';
     if (styleSection) styleSection.style.display = 'none';
+    if (qualityVideoSection) qualityVideoSection.style.display = 'block';
+    if (qualityImageSection) qualityImageSection.style.display = 'none';
     // 同步视频时长滑块
     const durSlider = durationSection ? durationSection.querySelector('input[type=range]') : null;
     if (durSlider) { durSlider.value = p.duration; }
@@ -2301,6 +2521,8 @@ function openParams() {
   } else {
     if (durationSection) durationSection.style.display = 'none';
     if (styleSection) styleSection.style.display = 'block';
+    if (qualityVideoSection) qualityVideoSection.style.display = 'none';
+    if (qualityImageSection) qualityImageSection.style.display = 'block';
     // 同步风格选项
     if (styleSection) {
       styleSection.querySelectorAll('.option-chip').forEach(chip => {
@@ -2309,10 +2531,11 @@ function openParams() {
     }
   }
   // 同步生成数量滑块
-  document.getElementById('genCountVal').textContent = p.genCount + ' 条';
-  // 同步画面比例和质量选项
+  const countUnit = state.mode === 'image' ? ' 张' : ' 条';
+  document.getElementById('genCountVal').textContent = p.genCount + countUnit;
+  // 同步画面比例和分辨率选项
   syncChipGroup('ratioGroup', p.ratio);
-  syncChipGroup('qualityGroup', p.quality);
+  syncChipGroup(state.mode === 'video' ? 'qualityVideoGroup' : 'qualityImageGroup', p.quality);
 
   document.getElementById('paramsPanel').classList.add('open');
 }
@@ -2340,7 +2563,8 @@ function updateDuration(val) {
 }
 function updateGenCount(val) {
   state.params.genCount = parseInt(val);
-  document.getElementById('genCountVal').textContent = val + ' 条';
+  const countUnit = state.mode === 'image' ? ' 张' : ' 条';
+  document.getElementById('genCountVal').textContent = val + countUnit;
 }
 function applyParams() {
   refreshParamDisplay();
@@ -2365,7 +2589,7 @@ const MODEL_ADAPTERS = {
     provider: 'bytedance',
     type: 'async',
     name: 'Seedance 2.0',
-    async submit(prompt, params, apiKey, refImages) {
+    async submit(prompt, params, apiKey, refImages, refVideos, refAudios) {
       const base = 'https://ark.cn-beijing.volces.com';
       const endpoint = `${base}/api/v3/contents/generations/tasks`;
       const body = {
@@ -2376,12 +2600,35 @@ const MODEL_ADAPTERS = {
         duration: params.duration || 5,
         watermark: false,
       };
-      if (refImages.length > 0) {
+      // 参考图片（图生视频）
+      if (refImages && refImages.length > 0) {
         refImages.forEach(img => {
           body.content.push({
             type: 'image_url',
             image_url: { url: img.dataUrl },
             role: 'reference_image'
+          });
+        });
+      }
+      // 参考视频（视频续接/风格参考）
+      if (refVideos && refVideos.length > 0) {
+        refVideos.forEach(vid => {
+          body.content.push({
+            type: 'video_url',
+            video_url: { url: vid.dataUrl },
+            role: 'reference_video'
+          });
+        });
+      }
+      // 参考音频（背景音乐/音效指导）
+      if (refAudios && refAudios.length > 0) {
+        // Seedance 通过 audio_url 传递参考音频
+        body.generate_audio = false; // 有参考音频时关闭自动生成
+        refAudios.forEach(aud => {
+          body.content.push({
+            type: 'audio_url',
+            audio_url: { url: aud.dataUrl },
+            role: 'reference_audio'
           });
         });
       }
@@ -2421,11 +2668,17 @@ const MODEL_ADAPTERS = {
     provider: 'kling',
     type: 'async',
     name: 'Kling 1.6 Pro',
-    async submit(prompt, params, apiKey, refImages) {
-      const isImg2Vid = refImages.length > 0;
-      const endpoint = isImg2Vid
-        ? 'https://api.klingai.com/v1/videos/image2video'
-        : 'https://api.klingai.com/v1/videos/text2video';
+    async submit(prompt, params, apiKey, refImages, refVideos, refAudios) {
+      const isImg2Vid = refImages && refImages.length > 0;
+      const isVid2Vid = !isImg2Vid && refVideos && refVideos.length > 0;
+      let endpoint;
+      if (isImg2Vid) {
+        endpoint = 'https://api.klingai.com/v1/videos/image2video';
+      } else if (isVid2Vid) {
+        endpoint = 'https://api.klingai.com/v1/videos/video2video';
+      } else {
+        endpoint = 'https://api.klingai.com/v1/videos/text2video';
+      }
       const body = {
         model: 'kling-v2',
         prompt,
@@ -2434,6 +2687,12 @@ const MODEL_ADAPTERS = {
       };
       if (isImg2Vid) {
         body.image = refImages[0].dataUrl;
+      } else if (isVid2Vid) {
+        body.video_url = refVideos[0].dataUrl;
+      }
+      // 音频参考（Kling 支持 audio_url 参数）
+      if (refAudios && refAudios.length > 0) {
+        body.audio_url = refAudios[0].dataUrl;
       }
       const resp = await fetch(endpoint, {
         method: 'POST',
@@ -2474,11 +2733,24 @@ const MODEL_ADAPTERS = {
     provider: 'openai',
     type: 'async',
     name: 'Sora',
-    async submit(prompt, params, apiKey) {
+    async submit(prompt, params, apiKey, refImages, refVideos, refAudios) {
+      const body = {
+        model: 'sora',
+        prompt,
+        size: (params.ratio || '16:9') === '9:16' ? '1080x1920' : '1920x1080'
+      };
+      // Sora 支持输入图片作为首帧
+      if (refImages && refImages.length > 0) {
+        body.image = refImages[0].dataUrl;
+      }
+      // Sora 支持视频参考（style/extend）
+      if (refVideos && refVideos.length > 0) {
+        body.video_url = refVideos[0].dataUrl;
+      }
       const resp = await fetch('https://api.openai.com/v1/videos/generations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: 'sora', prompt, size: (params.ratio || '16:9') === '9:16' ? '1080x1920' : '1920x1080' })
+        body: JSON.stringify(body)
       });
       if (!resp.ok) { const t = await resp.text(); throw new Error(`Sora ${resp.status}: ${t}`); }
       const data = await resp.json();
@@ -2499,43 +2771,55 @@ const MODEL_ADAPTERS = {
     }
   },
 
-  // ── 香蕉 Pro（图片模式：Gemini 图生图/文生图 | 视频模式：保留原视频接口） ──
+  // ── 香蕉 Pro（图片模式：Gemini generateContent 接口 | 视频模式：保留原视频接口） ──
   banana: {
     provider: 'banana',
     type: 'sync',   // 图片模式走同步直返；视频模式内部自行改为 async
     name: '香蕉 Pro',
-    async submit(prompt, params, apiKey, refImages) {
+    async submit(prompt, params, apiKey, refImages, refVideos, refAudios) {
       const isImage = state.mode === 'image';
+      console.log('[香蕉 Pro] submit 被调用, mode:', state.mode, 'isImage:', isImage, 'params:', JSON.stringify(params));
 
       if (isImage) {
-        // ====== Gemini 图生图 / 文生图 接口 ======
-        // baseUrl 从设置里读，默认 apiyi 中转
+        // ====== 香蕉 Pro Gemini generateContent 接口 ======
         const baseUrl = (localStorage.getItem('apikey_banana_url') || 'https://api.apiyi.com').replace(/\/$/, '');
+        console.log('[香蕉 Pro] baseUrl:', baseUrl);
 
-        // 构造 parts：文字提示词 + 可选参考图（base64 inlineData）
+        // 构建 parts
         const parts = [{ text: prompt || '生成一张精美图片' }];
 
+        // 如果有参考图片，附加图片（图生图）
         if (refImages && refImages.length > 0) {
-          // 把上传的参考图转为 inlineData（已经是 dataUrl，去掉 data:xxx;base64, 前缀）
-          refImages.forEach(img => {
-            const match = img.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-            if (match) {
-              parts.push({
-                inlineData: {
-                  mimeType: match[1],
-                  data: match[2]
-                }
-              });
-            }
-          });
+          for (const img of refImages) {
+            const dataUrl = img.dataUrl;
+            const mimeMatch = dataUrl.match(/data:(image\/\w+);/);
+            const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+            const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+            parts.push({ inlineData: { mimeType, data: base64Data } });
+          }
         }
 
-        // 画面比例映射
-        const ratioMap = {
+        // 画面比例映射为 aspectRatio
+        const aspectRatioMap = {
           '1:1': '1:1', '16:9': '16:9', '9:16': '9:16',
-          '3:4': '3:4', '4:3': '4:3'
+          '3:4': '3:4', '4:3': '4:3', '3:2': '3:2', '2:3': '2:3',
+          '21:9': '21:9', '9:21': '9:21'
         };
-        const aspectRatio = ratioMap[params.ratio] || '1:1';
+        const aspectRatio = aspectRatioMap[params.ratio] || '16:9';
+
+        // 分辨率映射为 imageSize
+        const qualityMap = { '1080P': '1080p', '2K': '2k', '4K': '4k' };
+        const imageSize = qualityMap[params.quality] || '4k';
+
+        const bodyPayload = {
+              contents: [{ parts }],
+              generationConfig: {
+                responseModalities: ['IMAGE'],
+                imageConfig: { aspectRatio, imageSize }
+              }
+            };
+        console.log('[香蕉 Pro] 请求地址:', `${baseUrl}/v1beta/models/gemini-3-pro-image-preview:generateContent`);
+        console.log('[香蕉 Pro] 请求参数:', JSON.stringify(bodyPayload));
 
         const resp = await fetch(
           `${baseUrl}/v1beta/models/gemini-3-pro-image-preview:generateContent`,
@@ -2545,56 +2829,70 @@ const MODEL_ADAPTERS = {
               'Authorization': `Bearer ${apiKey}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              contents: [{ parts }],
-              generationConfig: {
-                responseModalities: ['IMAGE'],
-                imageConfig: { aspectRatio }
-              }
-            }),
+            body: JSON.stringify(bodyPayload),
             signal: AbortSignal.timeout(300000)
           }
         );
 
+        console.log('[香蕉 Pro] HTTP状态:', resp.status, resp.statusText);
+
         if (!resp.ok) {
           const t = await resp.text();
+          console.error('[香蕉 Pro] 错误响应:', t);
           throw new Error(`香蕉 Pro ${resp.status}: ${t}`);
         }
 
         const data = await resp.json();
-
-        // 提取返回的 base64 图片数据
-        let imgBase64 = null;
-        let mimeType = 'image/png';
-        try {
-          const parts_out = data.candidates?.[0]?.content?.parts || [];
-          for (const p of parts_out) {
-            if (p.inlineData?.data) {
-              imgBase64 = p.inlineData.data;
-              mimeType = p.inlineData.mimeType || 'image/png';
-              break;
+        console.log('[香蕉 Pro] 返回数据:', JSON.stringify(data).substring(0, 2000));
+        // 从 Gemini 返回结构中提取 base64 图片数据
+        const respParts = data?.candidates?.[0]?.content?.parts;
+        console.log('[香蕉 Pro] respParts:', respParts);
+        if (respParts && respParts.length > 0) {
+          for (const part of respParts) {
+            if (part.inlineData?.data) {
+              const mimeType = part.inlineData.mimeType || 'image/png';
+              return { url: `data:${mimeType};base64,${part.inlineData.data}` };
+            }
+            // 有些中转站返回格式不同，尝试其他结构
+            if (part.text) {
+              // 可能返回的是 markdown 图片或 URL
+              const mdMatch = part.text.match(/!\[.*?\]\((data:image\/[^;]+;base64,[A-Za-z0-9+/=]+)\)/);
+              if (mdMatch) return { url: mdMatch[1] };
+              const urlMatch = part.text.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
+              if (urlMatch) return { url: urlMatch[1] };
+              const imgTagMatch = part.text.match(/src="(data:image\/[^"]+)"/);
+              if (imgTagMatch) return { url: imgTagMatch[1] };
+              // 纯文本 URL
+              if (part.text.startsWith('http') && /\.(png|jpg|jpeg|webp|gif)/i.test(part.text)) return { url: part.text.trim() };
             }
           }
-        } catch (e) { /* ignore */ }
-
-        if (!imgBase64) {
-          // 兜底：尝试从 text 里找 URL
-          const anyUrl = data.candidates?.[0]?.content?.parts?.find(p => p.text?.startsWith('http'))?.text || '';
-          if (anyUrl) return { url: anyUrl };
-          throw new Error('香蕉 Pro 未返回图片数据，请检查 API Key 和余额');
         }
-
-        // 将 base64 转成 dataUrl，直接渲染（无需远程 URL）
-        const dataUrl = `data:${mimeType};base64,${imgBase64}`;
-        return { url: dataUrl };
+        throw new Error('香蕉 Pro 未返回图片数据，完整返回: ' + JSON.stringify(data).substring(0, 500));
 
       } else {
         // ====== 视频接口（异步 taskId） ======
         const baseUrl = (localStorage.getItem('apikey_banana_url') || 'https://api.banana.dev').replace(/\/$/, '');
+        const videoBody = {
+          prompt,
+          duration: params.duration || 5,
+          aspect_ratio: params.ratio || '16:9'
+        };
+        // 传递参考图片（图生视频）
+        if (refImages && refImages.length > 0) {
+          videoBody.reference_image = refImages[0].dataUrl;
+        }
+        // 传递参考视频（视频生视频）
+        if (refVideos && refVideos.length > 0) {
+          videoBody.reference_video = refVideos[0].dataUrl;
+        }
+        // 传递参考音频
+        if (refAudios && refAudios.length > 0) {
+          videoBody.reference_audio = refAudios[0].dataUrl;
+        }
         const resp = await fetch(`${baseUrl}/v1/video/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ prompt, duration: params.duration || 5, aspect_ratio: params.ratio || '16:9' })
+          body: JSON.stringify(videoBody)
         });
         if (!resp.ok) { const t = await resp.text(); throw new Error(`香蕉 Pro ${resp.status}: ${t}`); }
         const data = await resp.json();
@@ -2615,24 +2913,74 @@ const MODEL_ADAPTERS = {
     }
   },
 
-  // ── GPT-Image2（图片，同步接口） ──
+  // ── GPT-Image2（图片，Chat Completions 接口） ──
   gptimage2: {
-    provider: 'openai',
+    provider: 'chatgptimage2',
     type: 'sync',
     name: 'GPT-Image2',
-    async submit(prompt, params, apiKey) {
-      const sizeMap = { '1:1': '1024x1024', '16:9': '1792x1024', '9:16': '1024x1792', '3:4': '768x1024', '4:3': '1024x768' };
-      const size = sizeMap[params.ratio] || '1024x1024';
-      const resp = await fetch('https://api.openai.com/v1/images/generations', {
+    async submit(prompt, params, apiKey, refImages) {
+      const sizeMap = {
+        '1:1': '1024x1024', '16:9': '1792x1024', '9:16': '1024x1792',
+        '3:4': '768x1024', '4:3': '1024x768', '3:2': '1536x1024', '2:3': '1024x1536',
+        '21:9': '2048x896', '9:21': '896x2048'
+      };
+      // 构建消息内容
+      const content = [];
+      content.push({ type: 'text', text: prompt });
+
+      // 如果有参考图片，附加图片
+      if (refImages && refImages.length > 0) {
+        refImages.forEach(img => {
+          content.push({ type: 'image_url', image_url: { url: img.dataUrl } });
+        });
+      }
+
+      const resp = await fetch('https://api.apiyi.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size, quality: params.quality === '1080P' ? 'hd' : 'standard', response_format: 'url' })
+        body: JSON.stringify({
+          model: 'gpt-image-2-all',
+          messages: [{ role: 'user', content }]
+        })
       });
-      if (!resp.ok) { const t = await resp.text(); throw new Error(`GPT-Image ${resp.status}: ${t}`); }
+      if (!resp.ok) { const t = await resp.text(); throw new Error(`GPT-Image2 ${resp.status}: ${t}`); }
       const data = await resp.json();
-      const url = data.data?.[0]?.url || '';
-      if (!url) throw new Error('未返回图片地址');
-      return { url }; // 同步：直接返回 url
+
+      // 解析返回内容，提取图片
+      const msgContent = data.choices?.[0]?.message?.content || '';
+      if (!msgContent) throw new Error('GPT-Image2 未返回内容');
+
+      let imageUrl = '';
+
+      // 1. 尝试从 markdown 图片标签中提取 dataUrl
+      const mdMatch = msgContent.match(/!\[.*?\]\((data:image\/[^;]+;base64,[A-Za-z0-9+/=]+)\)/);
+      if (mdMatch) {
+        imageUrl = mdMatch[1];
+      }
+
+      // 2. 尝试从 markdown 图片标签中提取 https URL
+      if (!imageUrl) {
+        const urlMatch = msgContent.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
+        if (urlMatch) {
+          imageUrl = urlMatch[1];
+        }
+      }
+
+      // 3. 如果 content 整体是 base64 dataUrl（部分接口直接返回）
+      if (!imageUrl && msgContent.startsWith('data:image/')) {
+        imageUrl = msgContent.trim();
+      }
+
+      // 4. 如果 content 中包含 <img src="data:image/..."> HTML 标签
+      if (!imageUrl) {
+        const imgTagMatch = msgContent.match(/src="(data:image\/[^"]+)"/);
+        if (imgTagMatch) {
+          imageUrl = imgTagMatch[1];
+        }
+      }
+
+      if (!imageUrl) throw new Error('GPT-Image2 返回内容中未找到图片');
+      return { url: imageUrl }; // 同步：直接返回 url 或 dataUrl
     }
   },
 
@@ -2735,8 +3083,10 @@ function getProviderForModel(modelId) {
 }
 
 // 获取 provider 对应的存储 key 名称
-function getApiKey(provider) {
-  return localStorage.getItem('apikey_' + provider) || '';
+async function getApiKey(provider) {
+  const raw = localStorage.getItem('apikey_' + provider);
+  if (!raw) return '';
+  return await decryptValue(raw);
 }
 
 // =================== FLOATING "SCROLL TO INPUT" BUTTON ===================
@@ -2801,7 +3151,7 @@ async function generate() {
   if (!adapter) { showToast('未知的模型：' + state.model, 'error'); return; }
 
   const provider = adapter.provider;
-  const apiKey = getApiKey(provider);
+  const apiKey = await getApiKey(provider);
   if (!apiKey) {
     showToast(`请先在 API 设置 中配置「${adapter.name}」对应的密钥`, 'error');
     openApiModal();
@@ -2827,7 +3177,7 @@ async function generate() {
     <div class="result-card" id="${cardId}">
       <div class="result-header">
         <div class="result-status generating" id="status-${cardId}"></div>
-        <div class="result-title">${prompt.slice(0,40)}${prompt.length>40?'...':''}</div>
+        <div class="result-title">${escapeHtml(prompt.slice(0,40))}${prompt.length>40?'...':''}</div>
         <div class="result-model">${modelName}</div>
       </div>
       <div class="result-body">
@@ -2848,7 +3198,7 @@ async function generate() {
 
   try {
     // ---- STEP 1: 提交任务 ----
-    const submitResult = await adapter.submit(prompt, state.params, apiKey, uploadedImages);
+    const submitResult = await adapter.submit(prompt, state.params, apiKey, uploadedImages, uploadedVideos, uploadedAudios);
 
     // 同步接口（如 GPT-Image、即梦）直接返回 url
     if (submitResult.url) {
@@ -2869,13 +3219,13 @@ async function generate() {
 
     // ---- STEP 2: 轮询任务状态 ----
     const POLL_INTERVAL = 3000;
-    const MAX_WAIT = 5 * 60 * 1000;
+    const MAX_WAIT = 15 * 60 * 1000; // 最长等待15分钟
     const startTime = Date.now();
 
     const poll = setInterval(async () => {
       if (Date.now() - startTime > MAX_WAIT) {
         clearInterval(poll);
-        handleGenerateError(cardId, '生成超时（超过 5 分钟），请重试');
+        handleGenerateError(cardId, '生成超时（超过 15 分钟），请重试');
         return;
       }
       try {
@@ -2898,6 +3248,7 @@ async function generate() {
     }, POLL_INTERVAL);
 
   } catch (e) {
+    console.error('[generate] 生成异常:', e);
     handleGenerateError(cardId, e.message);
   }
 }
@@ -3048,8 +3399,10 @@ function fillPrompt(el) {
 }
 
 // =================== UPLOAD ===================
-// 已上传图片列表
-const uploadedImages = []; // { dataUrl, name }
+// 已上传媒体文件列表（分类存储）
+const uploadedImages = []; // { dataUrl, name }         — 图片
+const uploadedVideos = []; // { dataUrl, name, objectUrl } — 视频
+const uploadedAudios = []; // { dataUrl, name }         — 音频
 
 function triggerUpload() {
   document.getElementById('fileInput').click();
@@ -3064,44 +3417,169 @@ function handleFileChange(e) {
 }
 
 function processFiles(files) {
-  const imageFiles = files.filter(f => f.type.startsWith('image/'));
-  if (!imageFiles.length) { showToast('请选择图片文件', 'error'); return; }
+  if (!files.length) return;
 
-  imageFiles.forEach(file => {
+  files.forEach(file => {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    const isAudio = file.type.startsWith('audio/');
+
+    if (state.mode === 'image' && !isImage) {
+      showToast('图片模式只支持上传图片文件', 'error');
+      return;
+    }
+    if (!isImage && !isVideo && !isAudio) {
+      showToast(`不支持的文件类型：${file.type || file.name}`, 'error');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target.result;
-      uploadedImages.push({ dataUrl, name: file.name });
-      renderUploadedImages();
-      showToast(`已上传：${file.name}`, 'success');
+      if (isImage) {
+        uploadedImages.push({ dataUrl, name: file.name });
+      } else if (isVideo) {
+        // 为视频创建 ObjectURL 用于本地预览
+        const objectUrl = URL.createObjectURL(file);
+        uploadedVideos.push({ dataUrl, name: file.name, objectUrl, size: file.size });
+      } else if (isAudio) {
+        uploadedAudios.push({ dataUrl, name: file.name, size: file.size });
+      }
+      renderUploadedMedia();
+      const mediaType = isImage ? '图片' : (isVideo ? '视频' : '音频');
+      showToast(`已上传${mediaType}：${file.name}`, 'success');
     };
     reader.readAsDataURL(file);
   });
 }
 
-function renderUploadedImages() {
+/**
+ * 统一渲染已上传的所有媒体文件（图片 + 视频 + 音频）
+ * 图片 → <img> 缩略图
+ * 视频 → <video> 缩略图（静帧）
+ * 音频 → 波形图标 + 文件名
+ */
+function renderUploadedMedia() {
   const zone = document.getElementById('uploadZone');
   const btn = document.getElementById('uploadBtn');
   // 清除已有缩略图（保留加号按钮）
   zone.querySelectorAll('.upload-thumb').forEach(t => t.remove());
-  // 插入缩略图（在加号按钮之前）
+
+  // 插入图片缩略图
   uploadedImages.forEach((img, idx) => {
     const thumb = document.createElement('div');
     thumb.className = 'upload-thumb';
+    thumb.title = img.name;
     thumb.innerHTML = `
-      <img src="${img.dataUrl}" alt="${img.name}" title="${img.name}" />
-      <button class="upload-thumb-del" onclick="removeUploadedImage(${idx}, event)" title="删除">✕</button>
+      <img src="${img.dataUrl}" alt="${escapeHtml(img.name)}" />
+      <span class="upload-thumb-badge">图片</span>
+      <button class="upload-thumb-del" onclick="removeUploadedMedia('image',${idx},event)" title="删除">✕</button>
     `;
+    thumb.addEventListener('click', () => previewImage(img.dataUrl, img.name));
+    zone.insertBefore(thumb, btn);
+  });
+
+  // 插入视频缩略图
+  uploadedVideos.forEach((vid, idx) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'upload-thumb';
+    thumb.title = vid.name;
+    // 使用 objectUrl 让视频可预览第一帧
+    thumb.innerHTML = `
+      <video src="${vid.objectUrl}" preload="metadata" muted></video>
+      <span class="upload-thumb-badge">视频</span>
+      <button class="upload-thumb-del" onclick="removeUploadedMedia('video',${idx},event)" title="删除">✕</button>
+    `;
+    thumb.addEventListener('click', () => previewVideo(vid.objectUrl, vid.name));
+    zone.insertBefore(thumb, btn);
+  });
+
+  // 插入音频缩略图
+  uploadedAudios.forEach((aud, idx) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'upload-thumb';
+    thumb.title = aud.name;
+    const shortName = aud.name.length > 8 ? aud.name.slice(0, 6) + '…' : aud.name;
+    thumb.innerHTML = `
+      <div class="upload-thumb-icon">
+        <span style="font-size:20px">🎵</span>
+        <span>${escapeHtml(shortName)}</span>
+      </div>
+      <span class="upload-thumb-badge">音频</span>
+      <button class="upload-thumb-del" onclick="removeUploadedMedia('audio',${idx},event)" title="删除">✕</button>
+    `;
+    thumb.addEventListener('click', () => previewAudio(aud.dataUrl, aud.name));
     zone.insertBefore(thumb, btn);
   });
 }
 
-function removeUploadedImage(idx, e) {
+// 兼容旧调用（图片模式会调用 renderUploadedImages）
+function renderUploadedImages() { renderUploadedMedia(); }
+
+function removeUploadedMedia(type, idx, e) {
   if (e) e.stopPropagation();
-  uploadedImages.splice(idx, 1);
-  renderUploadedImages();
-  showToast('已移除图片', 'info');
+  if (type === 'image') {
+    uploadedImages.splice(idx, 1);
+  } else if (type === 'video') {
+    // 释放 ObjectURL 防止内存泄漏
+    if (uploadedVideos[idx]?.objectUrl) URL.revokeObjectURL(uploadedVideos[idx].objectUrl);
+    uploadedVideos.splice(idx, 1);
+  } else if (type === 'audio') {
+    uploadedAudios.splice(idx, 1);
+  }
+  renderUploadedMedia();
+  showToast('已移除文件', 'info');
 }
+
+// 保留旧的 removeUploadedImage 兼容（图片模式可能还有调用）
+function removeUploadedImage(idx, e) { removeUploadedMedia('image', idx, e); }
+
+/* ===== 媒体预览：图片放大 / 视频播放 / 音频播放 ===== */
+function previewImage(dataUrl, name) {
+  const overlay = document.getElementById('mediaPreviewOverlay');
+  const content = document.getElementById('mediaPreviewContent');
+  content.innerHTML = `
+    <img class="preview-img" src="${dataUrl}" alt="${escapeHtml(name || '图片预览')}" />
+    <div class="preview-title">${escapeHtml(name || '图片预览')}</div>
+  `;
+  overlay.classList.add('active');
+}
+
+function previewVideo(objectUrl, name) {
+  const overlay = document.getElementById('mediaPreviewOverlay');
+  const content = document.getElementById('mediaPreviewContent');
+  content.innerHTML = `
+    <video class="preview-video" controls autoplay src="${objectUrl}"></video>
+    <div class="preview-title">${escapeHtml(name || '视频预览')}</div>
+  `;
+  overlay.classList.add('active');
+}
+
+function previewAudio(dataUrl, name) {
+  const overlay = document.getElementById('mediaPreviewOverlay');
+  const content = document.getElementById('mediaPreviewContent');
+  content.innerHTML = `
+    <div class="preview-audio-card">
+      <div class="preview-audio-icon">🎵</div>
+      <div class="preview-audio-name">${escapeHtml(name || '音频预览')}</div>
+      <audio class="preview-audio" controls autoplay src="${dataUrl}"></audio>
+    </div>
+  `;
+  overlay.classList.add('active');
+}
+
+function closeMediaPreview(e) {
+  if (e && e.target !== e.currentTarget && !e.target.closest('.preview-close')) return;
+  const overlay = document.getElementById('mediaPreviewOverlay');
+  // 停止所有正在播放的媒体
+  overlay.querySelectorAll('video, audio').forEach(m => { m.pause(); m.src = ''; });
+  overlay.classList.remove('active');
+}
+
+// ESC 关闭预览
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeMediaPreview();
+});
 
 // 拖拽事件：加号按钮上的拖拽
 function handleDragOver(e) {
@@ -3156,34 +3634,147 @@ const ASSET_STORAGE_KEY = 'ziyu_assets_v1';
 let assetCurrentTab = 'video';   // 'video' | 'image'
 let assetSortDesc = true;        // true=最新在前
 
-// ---- 读写 localStorage ----
-function loadAssets() {
-  try { return JSON.parse(localStorage.getItem(ASSET_STORAGE_KEY) || '[]'); }
-  catch(e) { return []; }
+// ── IndexedDB 资产存储（替代 localStorage，容量几乎无限） ──
+const IDB_NAME = 'ZiyuAssetDB';
+const IDB_VERSION = 1;
+const IDB_STORE = 'assets';
+const ASSET_MAX_IMAGES = 500;  // 图片最多 500 条
+const ASSET_MAX_VIDEOS = 200;  // 视频最多 200 条
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
-function saveAsset(item) {
-  const assets = loadAssets();
-  assets.unshift({ id: Date.now(), ...item }); // 最新的插到最前
-  // 限制总量防止 localStorage 爆满（最多 200 条，base64 图片较大只保留 60 条）
+
+// ── 数据迁移：localStorage → IndexedDB（首次运行时自动执行） ──
+let _idbMigrationDone = false;
+async function migrateAssetsToIDB() {
+  if (_idbMigrationDone) return;
+  _idbMigrationDone = true;
+  try {
+    const old = localStorage.getItem(ASSET_STORAGE_KEY);
+    if (!old) return;
+    const assets = JSON.parse(old);
+    if (!assets.length) return;
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    const store = tx.objectStore(IDB_STORE);
+    for (const item of assets) {
+      // base64 数据转为 Blob 存储，大幅减少内存占用
+      if (item.url && item.url.startsWith('data:') && item.type === 'image') {
+        item.blob = await dataUrlToBlob(item.url);
+        item.blobType = item.url.match(/^data:([^;]+);/)?.[1] || 'image/png';
+        item.url = ''; // 清除 base64，用 blob 替代
+      }
+      store.put(item);
+    }
+    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+    localStorage.removeItem(ASSET_STORAGE_KEY); // 清除旧数据
+  } catch (e) { /* 迁移失败不影响使用 */ }
+}
+
+function dataUrlToBlob(dataUrl) {
+  return fetch(dataUrl).then(r => r.blob());
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ---- 读取资产（IndexedDB + 内存缓存） ----
+let _assetsCache = null;
+async function loadAssets() {
+  if (_assetsCache) return _assetsCache;
+  await migrateAssetsToIDB();
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const store = tx.objectStore(IDB_STORE);
+    const req = store.getAll();
+    return new Promise((resolve) => {
+      req.onsuccess = () => {
+        _assetsCache = req.result || [];
+        resolve(_assetsCache);
+      };
+      req.onerror = () => resolve([]);
+    });
+  } catch (e) {
+    // 降级：从 localStorage 读取
+    try { return JSON.parse(localStorage.getItem(ASSET_STORAGE_KEY) || '[]'); }
+    catch (_) { return []; }
+  }
+}
+
+// 清除缓存
+function invalidateAssetCache() { _assetsCache = null; }
+
+// 获取资产的 URL（如果存的是 Blob 则转 dataUrl）
+async function getAssetUrl(asset) {
+  if (asset.blob) {
+    return await blobToDataUrl(asset.blob);
+  }
+  return asset.url || '';
+}
+
+// ---- 保存资产 ----
+async function saveAsset(item) {
+  await migrateAssetsToIDB();
+  const assets = await loadAssets();
+  const id = Date.now();
+  const entry = { id, ...item };
+
+  // base64 图片转 Blob 存储
+  if (entry.url && entry.url.startsWith('data:') && entry.type === 'image') {
+    try {
+      entry.blob = await dataUrlToBlob(entry.url);
+      entry.blobType = entry.url.match(/^data:([^;]+);/)?.[1] || 'image/png';
+      entry.url = '';
+    } catch (e) { /* 转换失败保留原 base64 */ }
+  }
+
+  assets.unshift(entry);
+
+  // 限制总量
   const images = assets.filter(a => a.type === 'image');
   const videos = assets.filter(a => a.type === 'video');
   const trimmed = [
-    ...images.slice(0, 60),
-    ...videos.slice(0, 140)
+    ...images.slice(0, ASSET_MAX_IMAGES),
+    ...videos.slice(0, ASSET_MAX_VIDEOS)
   ].sort((a, b) => b.id - a.id);
+
   try {
-    localStorage.setItem(ASSET_STORAGE_KEY, JSON.stringify(trimmed));
-  } catch(e) {
-    // storage 满了，丢掉最旧一半再试
-    const half = trimmed.slice(0, Math.floor(trimmed.length / 2));
-    try { localStorage.setItem(ASSET_STORAGE_KEY, JSON.stringify(half)); } catch(_) {}
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    const store = tx.objectStore(IDB_STORE);
+    // 清空旧数据并写入新数据
+    store.clear();
+    for (const item of trimmed) store.put(item);
+    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+    _assetsCache = trimmed;
+  } catch (e) {
+    // IndexedDB 失败时降级到 localStorage
+    const slim = trimmed.map(a => ({ ...a, blob: undefined, blobType: undefined }));
+    try { localStorage.setItem(ASSET_STORAGE_KEY, JSON.stringify(slim)); } catch (_) {}
   }
   updateAssetNavBadge();
 }
 
 // ---- 导航栏角标 ----
-function updateAssetNavBadge() {
-  const assets = loadAssets();
+async function updateAssetNavBadge() {
+  const assets = await loadAssets();
   const badge = document.getElementById('assetNavBadge');
   if (!badge) return;
   if (assets.length > 0) {
@@ -3223,20 +3814,35 @@ function toggleAssetSort() {
 }
 
 // ---- 清空当前 Tab ----
-function clearAssetTab() {
+async function clearAssetTab() {
   const label = assetCurrentTab === 'video' ? '视频' : '图片';
   if (!confirm(`确定要清空所有${label}资产吗？此操作不可撤销。`)) return;
-  const assets = loadAssets().filter(a => a.type !== assetCurrentTab);
-  try { localStorage.setItem(ASSET_STORAGE_KEY, JSON.stringify(assets)); } catch(e) {}
+  const assets = await loadAssets();
+  const remaining = assets.filter(a => a.type !== assetCurrentTab);
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    const store = tx.objectStore(IDB_STORE);
+    store.clear();
+    for (const item of remaining) store.put(item);
+    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+    _assetsCache = remaining;
+  } catch (e) {}
+  invalidateAssetCache();
   updateAssetNavBadge();
   renderAssetGrid();
   showToast(`已清空${label}资产`, 'success');
 }
 
 // ---- 删除单条 ----
-function deleteAssetById(id) {
-  const assets = loadAssets().filter(a => a.id !== id);
-  try { localStorage.setItem(ASSET_STORAGE_KEY, JSON.stringify(assets)); } catch(e) {}
+async function deleteAssetById(id) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(id);
+    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+  } catch (e) {}
+  invalidateAssetCache();
   updateAssetNavBadge();
   renderAssetGrid();
   showToast('已删除', 'info');
@@ -3268,7 +3874,7 @@ function previewAsset(url, type, prompt, model) {
   } else {
     mediaEl.innerHTML = `<img src="${url}" alt="预览图片" style="max-width:92vw;max-height:80vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.8)" />`;
   }
-  infoEl.innerHTML = `<div style="font-weight:600;margin-bottom:4px">${model}</div><div style="opacity:0.8;font-size:12px">${prompt || '（无提示词）'}</div>`;
+  infoEl.innerHTML = `<div style="font-weight:600;margin-bottom:4px">${escapeHtml(model)}</div><div style="opacity:0.8;font-size:12px">${escapeHtml(prompt || '（无提示词）')}</div>`;
   overlay.classList.add('open');
 }
 function closeAssetPreview() {
@@ -3277,11 +3883,11 @@ function closeAssetPreview() {
 }
 
 // ---- 主渲染函数 ----
-function renderAssetGrid() {
-  let assets = loadAssets().filter(a => a.type === assetCurrentTab);
+async function renderAssetGrid() {
+  let assets = (await loadAssets()).filter(a => a.type === assetCurrentTab);
 
   // 更新 tab 角标和总数
-  const all = loadAssets();
+  const all = await loadAssets();
   document.getElementById('assetVideoCnt').textContent = all.filter(a => a.type === 'video').length;
   document.getElementById('assetImageCnt').textContent = all.filter(a => a.type === 'image').length;
   document.getElementById('assetTotalBadge').textContent = all.length + ' 个';
@@ -3301,7 +3907,7 @@ function renderAssetGrid() {
   if (assets.length === 0) {
     const emptyIcon = assetCurrentTab === 'video' ? '🎬' : '🖼️';
     const emptyText = q
-      ? `没有找到匹配「${q}」的${assetCurrentTab === 'video' ? '视频' : '图片'}资产`
+      ? `没有找到匹配「${escapeHtml(q)}」的${assetCurrentTab === 'video' ? '视频' : '图片'}资产`
       : `还没有${assetCurrentTab === 'video' ? '视频' : '图片'}资产`;
     const emptySub = q ? '试试其他关键词' : '去生成一个吧！';
     body.innerHTML = `
@@ -3314,12 +3920,24 @@ function renderAssetGrid() {
   }
 
   body.innerHTML = `<div class="asset-grid">${assets.map(a => renderAssetCard(a)).join('')}</div>`;
+
+  // 为 Blob 类型的图片创建 ObjectURL 用于缩略图显示
+  assets.forEach(async a => {
+    if (a.blob && a.type === 'image') {
+      const objUrl = URL.createObjectURL(a.blob);
+      const card = document.getElementById('assetCard-' + a.id);
+      if (card) {
+        const img = card.querySelector('.asset-thumb img');
+        if (img) img.src = objUrl;
+      }
+    }
+  });
 }
 
 function renderAssetCard(a) {
   const isVideo = a.type === 'video';
-  const isBase64 = (a.url || '').startsWith('data:');
   const shortPrompt = (a.prompt || '（无提示词）').slice(0, 80);
+  const displayUrl = a.url || ''; // Blob 类型初始为空，后面异步填充
 
   // 缩略图
   let thumbHtml;
@@ -3329,9 +3947,9 @@ function renderAssetCard(a) {
       <div class="asset-type-badge">视频</div>`;
   } else {
     thumbHtml = `
-      <img src="${a.url}" alt="缩略图" loading="lazy"
+      <img src="${displayUrl}" alt="缩略图" loading="lazy"
         onerror="this.style.display='none';this.parentNode.querySelector('.asset-thumb-placeholder') && (this.parentNode.querySelector('.asset-thumb-placeholder').style.display='flex')" />
-      <div class="asset-thumb-placeholder" style="display:none">🖼️</div>
+      <div class="asset-thumb-placeholder" style="${displayUrl ? 'display:none' : 'flex'}">🖼️</div>
       <div class="asset-type-badge">图片</div>`;
   }
 
@@ -3346,7 +3964,7 @@ function renderAssetCard(a) {
             👁️
           </div>
           <div class="asset-action-icon" title="下载"
-            onclick="downloadAsset(getAssetUrlById(${a.id}), '${a.type}', ${a.id})">
+            onclick="downloadAssetById(${a.id})">
             ⬇️
           </div>
           <div class="asset-action-icon" title="删除"
@@ -3356,23 +3974,39 @@ function renderAssetCard(a) {
         </div>
       </div>
       <div class="asset-card-info">
-        <div class="asset-card-prompt">${shortPrompt}</div>
+        <div class="asset-card-prompt">${escapeHtml(shortPrompt)}</div>
         <div class="asset-card-meta">
-          <span class="asset-card-model">${a.model || '未知模型'}</span>
+          <span class="asset-card-model">${escapeHtml(a.model || '未知模型')}</span>
           <span>${a.time || ''}</span>
         </div>
       </div>
     </div>`;
 }
 
-// 通过 id 获取 url（避免在 HTML 里内联大量 base64）
-function getAssetUrlById(id) {
-  const a = loadAssets().find(x => x.id === id);
-  return a ? a.url : '';
+// 通过 id 获取 url（支持 Blob 数据）
+async function getAssetUrlById(id) {
+  const all = await loadAssets();
+  const a = all.find(x => x.id === id);
+  if (!a) return '';
+  return await getAssetUrl(a);
 }
-function previewAssetById(id) {
-  const a = loadAssets().find(x => x.id === id);
-  if (a) previewAsset(a.url, a.type, a.prompt, a.model);
+
+async function previewAssetById(id) {
+  const all = await loadAssets();
+  const a = all.find(x => x.id === id);
+  if (a) {
+    const url = await getAssetUrl(a);
+    previewAsset(url, a.type, a.prompt, a.model);
+  }
+}
+
+// 下载资产（统一入口）
+async function downloadAssetById(id) {
+  const all = await loadAssets();
+  const a = all.find(x => x.id === id);
+  if (!a) return;
+  const url = await getAssetUrl(a);
+  downloadAsset(url, a.type, a.id);
 }
 
 // 页面加载时更新角标
@@ -3413,20 +4047,21 @@ function testApi(provider) {
     }
   }, 1500);
 }
-function saveAllKeys() {
-  PROVIDERS.forEach(p => {
+async function saveAllKeys() {
+  for (const p of PROVIDERS) {
     const el = document.getElementById('key' + p.charAt(0).toUpperCase() + p.slice(1));
     if (el && el.value.trim()) {
-      localStorage.setItem('apikey_' + p, el.value.trim());
+      const encrypted = await encryptValue(el.value.trim());
+      localStorage.setItem('apikey_' + p, encrypted);
       updateProviderStatus(p, true);
     }
-  });
-  // 香蕉 Pro 自定义 URL
+  }
+  // 香蕉 Pro 自定义 URL（URL 不加密）
   const bananaUrlEl = document.getElementById('keyBananaUrl');
   if (bananaUrlEl && bananaUrlEl.value.trim()) {
     localStorage.setItem('apikey_banana_url', bananaUrlEl.value.trim());
   }
-  showToast('所有配置已保存到本地 💾', 'success');
+  showToast('所有配置已加密保存到本地 🔒', 'success');
   setTimeout(closeApiModal, 1000);
 }
 
@@ -3457,5 +4092,10 @@ window.addEventListener('load', () => {
 });
 </script>
 </div><!-- end #appMain -->
+<!-- 媒体预览弹窗 -->
+<div class="media-preview-overlay" id="mediaPreviewOverlay" onclick="closeMediaPreview(event)">
+  <button class="preview-close" onclick="closeMediaPreview()" title="关闭">✕</button>
+  <div id="mediaPreviewContent"></div>
+</div>
 </body>
 </html>
